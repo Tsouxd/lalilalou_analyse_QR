@@ -8,11 +8,16 @@ import io
 import cv2
 import numpy as np
 from pyzbar.pyzbar import decode
+# Import pour générer les jetons sécurisés
+from itsdangerous import URLSafeTimedSerializer
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'ma_cle_secrete'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///scans.db'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
+
+# Initialisation du générateur de jetons
+serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 db = SQLAlchemy(app)
 login_manager = LoginManager()
@@ -28,16 +33,16 @@ class User(UserMixin, db.Model):
 
 class ScanLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    qr_content = db.Column(db.String(255), unique=True, nullable=False) # UNIQUE maintenant
-    visits = db.Column(db.Integer, default=0) # Le compteur ++
-    last_scanned_at = db.Column(db.DateTime, default=datetime.now) # Heure du DERNIER scan
-    last_scanned_by = db.Column(db.String(100)) # Qui l'a scanné en dernier
+    qr_content = db.Column(db.String(255), unique=True, nullable=False)
+    visits = db.Column(db.Integer, default=0)
+    last_scanned_at = db.Column(db.DateTime, default=datetime.now)
+    last_scanned_by = db.Column(db.String(100))
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- AUTH (Inchangé) ---
+# --- AUTH ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -93,28 +98,20 @@ def analyze_image():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-# --- LOGIQUE DE SAUVEGARDE (LA CORRECTION EST ICI) ---
-
 def save_scan(qr_content):
-    """Cherche si le QR existe, sinon le crée, et fait ++"""
     scan = ScanLog.query.filter_by(qr_content=qr_content).first()
-    
     if scan:
-        # Si le QR existe déjà, on incrémente
         scan.visits += 1
         scan.last_scanned_at = datetime.now()
         scan.last_scanned_by = current_user.username
     else:
-        # Si c'est un nouveau QR, on crée la ligne
         scan = ScanLog(
             qr_content=qr_content, 
             visits=1, 
             last_scanned_by=current_user.username
         )
         db.session.add(scan)
-    
     db.session.commit()
-    
     return jsonify({
         'status': 'success',
         'qr_code': qr_content,
@@ -127,21 +124,52 @@ def save_scan(qr_content):
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # Affiche une ligne par QR unique, trié par le plus récemment scanné
     logs = ScanLog.query.order_by(ScanLog.last_scanned_at.desc()).all()
     return render_template('dashboard.html', logs=logs)
 
-@app.route('/export_csv')
+# 1. Nouvelle route pour obtenir un jeton de téléchargement
+@app.route('/api/get_download_token')
 @login_required
+def get_download_token():
+    # Génère un jeton contenant l'ID de l'utilisateur
+    token = serializer.dumps({'user_id': current_user.id})
+    return jsonify({'token': token})
+
+# 2. Route d'exportation modifiée pour supporter le jeton
+@app.route('/export_csv')
 def export_csv():
+    token = request.args.get('token')
+    authenticated = False
+
+    # Vérification 1: Session classique (Web)
+    if current_user.is_authenticated:
+        authenticated = True
+    
+    # Vérification 2: Jeton temporaire (APK)
+    elif token:
+        try:
+            # Le jeton expire après 60 secondes pour sécurité maximale
+            serializer.loads(token, max_age=60)
+            authenticated = True
+        except:
+            authenticated = False
+
+    if not authenticated:
+        return redirect(url_for('login'))
+
+    # Logique de génération CSV (inchangée)
     logs = ScanLog.query.all()
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(['Contenu QR', 'Nombre de Scans', 'Dernier Scan', 'Par'])
     for log in logs:
         writer.writerow([log.qr_content, log.visits, log.last_scanned_at, log.last_scanned_by])
-    return Response(output.getvalue(), mimetype="text/csv", 
-                    headers={"Content-disposition": "attachment; filename=stats_qr.csv"})
+    
+    return Response(
+        output.getvalue(), 
+        mimetype="text/csv", 
+        headers={"Content-disposition": "attachment; filename=stats_qr_lalilalou.csv"}
+    )
 
 # --- INIT ---
 def create_admin():

@@ -49,36 +49,40 @@
 <!-- LOGIQUE D'EXPORTATION INTELLIGENTE -->
 <script>
 async function handleDownload() {
-    // L'URL générée par Flask (doit être absolue pour l'APK)
-    const downloadUrl = "{{ url_for('export_csv', _external=True) }}";
+    try {
+        // 1. On récupère d'abord le token de sécurité depuis l'API
+        // Cet appel fonctionne car il est fait depuis l'app où l'utilisateur est connecté
+        const response = await fetch("{{ url_for('get_download_token') }}");
+        const data = await response.json();
+        const token = data.token;
 
-    // Détection de Capacitor
-    const isCapacitor = typeof Capacitor !== 'undefined';
+        // 2. On prépare l'URL finale avec le token en paramètre
+        const downloadUrl = "{{ url_for('export_csv', _external=True) }}?token=" + token;
 
-    if (isCapacitor) {
-        // --- CAS APK (Android/iOS) ---
-        try {
-            // On utilise le plugin Browser pour forcer le téléchargement via Chrome Android
+        // Détection de Capacitor
+        const isCapacitor = typeof Capacitor !== 'undefined';
+
+        if (isCapacitor) {
+            // --- CAS APK (Android/iOS) ---
             if (Capacitor.Plugins && Capacitor.Plugins.Browser) {
+                // Le token permet de passer outre le login dans le navigateur externe
                 await Capacitor.Plugins.Browser.open({ url: downloadUrl });
             } else {
-                // Fallback si le plugin n'est pas détecté
                 window.open(downloadUrl, '_system');
             }
-        } catch (error) {
-            console.error("Erreur d'export mobile:", error);
-            // Si tout échoue, on tente la méthode standard
-            window.location.href = downloadUrl;
+        } else {
+            // --- CAS WEB CLASSIQUE (PC) ---
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.setAttribute('download', 'stats_qr_lalilalou.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
-    } else {
-        // --- CAS WEB CLASSIQUE (PC / Navigateur Mobile) ---
-        // On crée un lien temporaire pour déclencher le téléchargement
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.setAttribute('download', 'stats_qr_lalilalou.csv');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+
+    } catch (error) {
+        console.error("Erreur d'exportation:", error);
+        alert("Impossible de générer le fichier. Vérifiez votre connexion.");
     }
 }
 </script>
