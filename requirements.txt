@@ -4,3 +4,4 @@ flask-login
 opencv-python-headless 
 pyzbar 
 numpy
+gunicorn
