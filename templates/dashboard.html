@@ -3,9 +3,11 @@
 <div class="dashboard-wrapper">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
         <h2 class="mb-3 mb-md-0">Statistiques des QR Codes</h2>
-        <a href="{{ url_for('export_csv') }}" class="btn btn-success">
+        
+        <!-- Le bouton appelle maintenant la fonction handleDownload -->
+        <button onclick="handleDownload()" class="btn btn-success">
             <span>📥 Exporter Excel (CSV)</span>
-        </a>
+        </button>
     </div>
 
     <div class="table-responsive">
@@ -20,7 +22,7 @@
             </thead>
             <tbody>
                 {% for log in logs %}
-                <tr style="animation-delay: {{ loop.index0 * 0.05 }}s;">
+                <tr style="animation-delay: {{ loop.index0 * 0.05 }}s; animation: fadeInUp 0.5s ease forwards;">
                     <td><strong>{{ log.qr_content }}</strong></td>
                     <td><span class="badge bg-primary fs-6">{{ log.visits }}</span></td>
                     <td>{{ log.last_scanned_at.strftime('%d/%m/%Y %H:%M:%S') }}</td>
@@ -32,7 +34,7 @@
     </div>
 
     {% if not logs %}
-    <div class="card text-center p-5 mt-4">
+    <div class="card text-center p-5 mt-4" style="background: var(--dark-card); border: 1px solid var(--dark-border);">
         <div class="card-body">
             <h4 style="color: var(--text-light);">Aucune donnée disponible</h4>
             <p style="color: var(--text-gray);">Commencez à scanner des QR codes pour voir les statistiques ici.</p>
@@ -43,6 +45,43 @@
     </div>
     {% endif %}
 </div>
+
+<!-- LOGIQUE D'EXPORTATION INTELLIGENTE -->
+<script>
+async function handleDownload() {
+    // L'URL générée par Flask (doit être absolue pour l'APK)
+    const downloadUrl = "{{ url_for('export_csv', _external=True) }}";
+
+    // Détection de Capacitor
+    const isCapacitor = typeof Capacitor !== 'undefined';
+
+    if (isCapacitor) {
+        // --- CAS APK (Android/iOS) ---
+        try {
+            // On utilise le plugin Browser pour forcer le téléchargement via Chrome Android
+            if (Capacitor.Plugins && Capacitor.Plugins.Browser) {
+                await Capacitor.Plugins.Browser.open({ url: downloadUrl });
+            } else {
+                // Fallback si le plugin n'est pas détecté
+                window.open(downloadUrl, '_system');
+            }
+        } catch (error) {
+            console.error("Erreur d'export mobile:", error);
+            // Si tout échoue, on tente la méthode standard
+            window.location.href = downloadUrl;
+        }
+    } else {
+        // --- CAS WEB CLASSIQUE (PC / Navigateur Mobile) ---
+        // On crée un lien temporaire pour déclencher le téléchargement
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.setAttribute('download', 'stats_qr_lalilalou.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+</script>
 
 <style>
     .dashboard-wrapper {
