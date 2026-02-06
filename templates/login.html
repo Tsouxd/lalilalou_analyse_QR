@@ -1,0 +1,562 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="login-page">
+    <div class="login-container">
+        <div class="login-box">
+            <!-- Left side - Branding -->
+            <div class="login-branding">
+                <div class="brand-content">
+                    <div class="brand-icon">
+                        <img src="{{ url_for('static', filename='lalilalou-removebg-preview.png') }}" alt="Logo LaLiLaLou" class="brand-logo-img">
+                    </div>
+                    <h1 class="brand-title">LaLiLaLou</h1>
+                    <p class="brand-subtitle">Système de Gestion QR Code</p>
+                    <div class="brand-features">
+                        <div class="feature-item">
+                            <span class="feature-icon"></span>
+                            <span class="feature-text">Scanner en temps réel</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon"></span>
+                            <span class="feature-text">Statistiques avancées</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon"></span>
+                            <span class="feature-text">Sécurisé & Fiable</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right side - Login form -->
+            <div class="login-form-container">
+                <div class="login-form-wrapper">
+                    <div class="login-header">
+                        <h2 class="login-title">Connexion Staff</h2>
+                        <p class="login-description">Entrez vos identifiants pour accéder</p>
+                    </div>
+
+                    <form method="POST" id="loginForm" class="login-form">
+                        <div class="form-group">
+                            <label for="username" class="form-label">
+                                <span class="label-icon">👤</span>
+                                Utilisateur
+                            </label>
+                            <div class="input-wrapper">
+                                <input 
+                                    type="text" 
+                                    name="username" 
+                                    id="username"
+                                    class="form-input" 
+                                    placeholder="Votre nom d'utilisateur" 
+                                    required
+                                    autocomplete="username">
+                                <span class="input-border"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password" class="form-label">
+                                <span class="label-icon">🔑</span>
+                                Mot de passe
+                            </label>
+                            <div class="input-wrapper">
+                                <input 
+                                    type="password" 
+                                    name="password" 
+                                    id="password"
+                                    class="form-input" 
+                                    placeholder="Votre mot de passe" 
+                                    required
+                                    autocomplete="current-password">
+                                <span class="input-border"></span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="login-button" id="loginBtn">
+                            <span class="btn-content" id="btnText">
+                                <span class="btn-icon">🚀</span>
+                                <span>Se Connecter</span>
+                            </span>
+                            <span class="btn-loader d-none" id="btnLoader">
+                                <span class="spinner"></span>
+                                <span>Connexion en cours...</span>
+                            </span>
+                        </button>
+                    </form>
+
+                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            <div class="error-message">
+                                <span class="error-icon">⚠️</span>
+                                <span class="error-text">{{ messages[0] }}</span>
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .login-page {
+        min-height: 86vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+        position: relative;
+    }
+
+    .login-container {
+        width: 100%;
+        max-width: 1000px;
+        animation: fadeInUp 0.8s ease-out;
+    }
+
+    .login-box {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        background: var(--dark-card);
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 20px 80px rgba(255, 0, 110, 0.2);
+        border: 1px solid var(--dark-border);
+        min-height: 600px;
+    }
+
+    /* Left Side - Branding */
+    .login-branding {
+        background: linear-gradient(135deg, var(--primary-pink) 0%, var(--accent-pink) 100%);
+        padding: 3rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .login-branding::before {
+        content: '';
+        position: absolute;
+        width: 400px;
+        height: 400px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        top: -100px;
+        right: -100px;
+        animation: floatBubble 6s ease-in-out infinite;
+    }
+
+    .login-branding::after {
+        content: '';
+        position: absolute;
+        width: 300px;
+        height: 300px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        bottom: -50px;
+        left: -50px;
+        animation: floatBubble 8s ease-in-out infinite reverse;
+    }
+
+    @keyframes floatBubble {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(20px, -20px) scale(1.1); }
+    }
+
+    .brand-content {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+    }
+
+    .brand-icon {
+        font-size: 5rem;
+        margin-bottom: 1.5rem;
+        animation: rotatePulse 3s ease-in-out infinite;
+    }
+
+    @keyframes rotatePulse {
+        0%, 100% { transform: rotate(0deg) scale(1); }
+        50% { transform: rotate(5deg) scale(1.1); }
+    }
+
+    .brand-title {
+        font-size: 3rem;
+        font-weight: 800;
+        color: white;
+        margin-bottom: 0.5rem;
+        letter-spacing: -1px;
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .brand-subtitle {
+        font-size: 1.1rem;
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 3rem;
+        font-weight: 500;
+    }
+
+    .brand-features {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .feature-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .feature-item:hover {
+        transform: translateX(10px);
+        background: rgba(255, 255, 255, 0.25);
+    }
+
+    .feature-icon {
+        font-size: 1.5rem;
+    }
+
+    .feature-text {
+        color: white;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    /* Right Side - Form */
+    .login-form-container {
+        padding: 3rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--dark-card);
+    }
+
+    .login-form-wrapper {
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .login-header {
+        margin-bottom: 2.5rem;
+        text-align: center;
+    }
+
+    .login-title {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--text-light);
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, var(--primary-pink) 0%, var(--accent-pink) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .login-description {
+        color: var(--text-gray);
+        font-size: 0.95rem;
+    }
+
+    .login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .form-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-light);
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .label-icon {
+        font-size: 1.1rem;
+    }
+
+    .input-wrapper {
+        position: relative;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 1rem 1.2rem;
+        background: var(--dark-secondary);
+        border: 2px solid var(--dark-border);
+        border-radius: 12px;
+        color: var(--text-light);
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        outline: none;
+    }
+
+    .form-input::placeholder {
+        color: var(--text-gray);
+    }
+
+    .form-input:focus {
+        border-color: var(--primary-pink);
+        background: var(--dark-card);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(255, 0, 110, 0.2);
+    }
+
+    .input-border {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: linear-gradient(135deg, var(--primary-pink) 0%, var(--accent-pink) 100%);
+        transition: width 0.3s ease;
+    }
+
+    .form-input:focus + .input-border {
+        width: 100%;
+    }
+
+    .login-button {
+        margin-top: 1rem;
+        padding: 1.2rem;
+        background: linear-gradient(135deg, var(--primary-pink) 0%, var(--accent-pink) 100%);
+        border: none;
+        border-radius: 12px;
+        color: white;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 24px rgba(255, 0, 110, 0.3);
+    }
+
+    .login-button::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+
+    .login-button:hover::before {
+        width: 400px;
+        height: 400px;
+    }
+
+    .login-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 32px rgba(255, 0, 110, 0.4);
+    }
+
+    .login-button:active {
+        transform: translateY(-1px);
+    }
+
+    .login-button:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none !important;
+    }
+
+    .btn-content,
+    .btn-loader {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .btn-icon {
+        font-size: 1.2rem;
+    }
+
+    .spinner {
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .error-message {
+        margin-top: 1.5rem;
+        padding: 1rem 1.2rem;
+        background: rgba(255, 51, 102, 0.1);
+        border: 1px solid rgba(255, 51, 102, 0.3);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        animation: shake 0.5s ease-out;
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+        20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+
+    .error-icon {
+        font-size: 1.3rem;
+    }
+
+    .error-text {
+        color: #ff6b94;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 992px) {
+        .login-box {
+            grid-template-columns: 1fr;
+        }
+
+        .login-branding {
+            display: none;
+        }
+
+        .login-form-container {
+            padding: 2.5rem 2rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .login-page {
+            padding: 1rem 0.5rem;
+        }
+        .brand-logo-img {
+            width: 80px; /* Encore plus petit sur mobile */
+        }
+
+        .login-box {
+            border-radius: 20px;
+            min-height: auto;
+        }
+
+        .login-form-container {
+            padding: 2rem 1.5rem;
+        }
+
+        .login-title {
+            font-size: 1.8rem;
+        }
+
+        .brand-title {
+            font-size: 2.5rem;
+        }
+
+        .brand-subtitle {
+            font-size: 1rem;
+        }
+
+        .form-input {
+            padding: 0.9rem 1rem;
+            font-size: 0.95rem;
+        }
+
+        .login-button {
+            padding: 1rem;
+            font-size: 0.95rem;
+        }
+    }
+
+    @media (max-width: 400px) {
+        .login-form-container {
+            padding: 1.5rem 1rem;
+        }
+
+        .login-header {
+            margin-bottom: 2rem;
+        }
+
+        .login-title {
+            font-size: 1.6rem;
+        }
+    }
+
+    /* Modification du conteneur d'icône pour l'image */
+    .brand-icon {
+        /* Suppression du font-size car c'est une image maintenant */
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        animation: rotatePulse 3s ease-in-out infinite;
+    }
+
+    /* Style spécifique pour rapetisser le logo */
+    .brand-logo-img {
+        width: 120px; /* Taille idéale pour le style actuel */
+        height: auto;
+        object-fit: contain;
+        /* Optionnel : ajout d'un léger reflet blanc pour faire ressortir le logo sur le rose */
+        filter: drop-shadow(0 4px 10px rgba(255, 255, 255, 0.2));
+    }
+
+    /* Animation ajustée pour être plus fluide avec une image */
+    @keyframes rotatePulse {
+        0%, 100% { transform: rotate(0deg) scale(1); }
+        50% { transform: rotate(3deg) scale(1.05); }
+    }
+</style>
+
+<script>
+    // Form submission handler
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        const btn = document.getElementById('loginBtn');
+        const btnText = document.getElementById('btnText');
+        const btnLoader = document.getElementById('btnLoader');
+        
+        // Show loading state
+        btn.disabled = true;
+        btnText.classList.add('d-none');
+        btnLoader.classList.remove('d-none');
+    });
+
+    // Input animations
+    document.querySelectorAll('.form-input').forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.querySelector('.input-border').style.width = '100%';
+        });
+        
+        input.addEventListener('blur', function() {
+            if (!this.value) {
+                this.parentElement.querySelector('.input-border').style.width = '0';
+            }
+        });
+    });
+</script>
+{% endblock %}

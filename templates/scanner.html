@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="scanner-container text-center">
+    <h2 class="mb-4">🔍 Scanner un QR Code</h2>
+
+    <!-- Navigation des onglets -->
+    <ul class="nav nav-tabs mb-4 justify-content-center" id="myTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="cam-tab" data-bs-toggle="tab" data-bs-target="#cam-pane" type="button">📸 Caméra Live</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="file-tab" data-bs-toggle="tab" data-bs-target="#file-pane" type="button">📂 Importer Image</button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- MODE CAMÉRA (JS) -->
+        <div class="tab-pane fade show active" id="cam-pane">
+            <div id="reader"></div>
+        </div>
+
+        <!-- MODE FICHIER (PYTHON) -->
+        <div class="tab-pane fade" id="file-pane">
+            <div class="card p-4">
+                <h5 class="mb-3" style="color: var(--text-light);">📤 Analyser une image ou capture d'écran</h5>
+                <input type="file" id="qr-input-file" accept="image/*" class="form-control mb-3">
+                <button onclick="uploadQR()" class="btn btn-primary w-100" id="btn-upload">
+                    ✨ Envoyer et Analyser
+                </button>
+                <div id="upload-loading" class="mt-3 d-none">
+                    <div class="spinner-border" role="status"></div>
+                    <span class="ms-2" style="color: var(--text-gray);">⏳ Analyse en cours sur le serveur...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ZONE DE RÉSULTAT (Commune aux deux modes) -->
+    <div id="result-card" class="card mt-4 d-none border-success">
+        <div class="card-header text-white">
+            ✅ Scan Réussi !
+        </div>
+        <div class="card-body">
+            <h4 class="card-title" id="scan-content" style="font-weight: bold; color: var(--text-light);">...</h4>
+            <p class="card-text" style="color: var(--text-gray);">
+                Nombre de checks total : <span class="badge bg-primary fs-5" id="scan-count">0</span>
+            </p>
+            <small style="color: var(--text-gray);">⏰ Scanné à : <span id="scan-time"></span></small>
+        </div>
+    </div>
+
+    <!-- ALERTES ERREURS -->
+    <div id="error-alert" class="alert alert-danger mt-3 d-none"></div>
+
+    <!-- HISTORIQUE SESSION -->
+    <div class="mt-5">
+        <h5>📋 Historique de cette session</h5>
+        <ul id="session-log" class="list-group text-start"></ul>
+    </div>
+</div>
+
+<style>
+    /* Additional Scanner-Specific Styles */
+    #reader {
+        margin-bottom: 1rem;
+    }
+
+    #reader video {
+        border-radius: 16px;
+    }
+
+    /* Smooth transitions for cards */
+    #result-card {
+        transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    #result-card.success-pop {
+        animation: successPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    /* File input custom styling */
+    #qr-input-file {
+        cursor: pointer;
+    }
+
+    #qr-input-file::-webkit-file-upload-button {
+        background: linear-gradient(135deg, var(--primary-pink) 0%, var(--accent-pink) 100%);
+        color: white;
+        border: none;
+        padding: 0.6rem 1.2rem;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 700;
+        margin-right: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    #qr-input-file::-webkit-file-upload-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(255, 0, 110, 0.4);
+    }
+
+    /* List group item animations */
+    .list-group-item {
+        animation-delay: calc(var(--item-index) * 0.1s);
+    }
+
+    /* Pulse animation for new items */
+    @keyframes newItemPulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(255, 0, 110, 0.7);
+        }
+        50% {
+            box-shadow: 0 0 0 15px rgba(255, 0, 110, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(255, 0, 110, 0);
+        }
+    }
+
+    .new-item {
+        animation: newItemPulse 1s ease-out;
+    }
+</style>
+
+<script>
+    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
+
+    // --- FONCTIONS D'AFFICHAGE ---
+    function showResult(data) {
+        audio.play().catch(e => console.log("Audio bloqué par le navigateur"));
+        
+        // Cacher les erreurs
+        document.getElementById('error-alert').classList.add('d-none');
+        
+        // Afficher le résultat avec animation
+        const resultCard = document.getElementById('result-card');
+        resultCard.classList.remove('d-none');
+        resultCard.classList.add('success-pop');
+        
+        document.getElementById('scan-content').innerText = data.qr_code;
+        document.getElementById('scan-count').innerText = data.count;
+        document.getElementById('scan-time').innerText = data.timestamp;
+
+        // Remove animation class after animation completes
+        setTimeout(() => {
+            resultCard.classList.remove('success-pop');
+        }, 600);
+
+        // Ajouter à l'historique en bas avec animation
+        let li = document.createElement('li');
+        li.className = 'list-group-item d-flex justify-content-between align-items-center list-group-item-action new-item';
+        li.innerHTML = `<span><strong>${data.qr_code}</strong></span> <span class="badge bg-primary rounded-pill">${data.count}</span>`;
+        document.getElementById('session-log').prepend(li);
+        
+        // Remove new-item class after animation
+        setTimeout(() => {
+            li.classList.remove('new-item');
+        }, 1000);
+    }
+
+    function showError(message) {
+        document.getElementById('result-card').classList.add('d-none');
+        let errDiv = document.getElementById('error-alert');
+        errDiv.innerHTML = `<strong>❌ Erreur:</strong> ${message}`;
+        errDiv.classList.remove('d-none');
+    }
+
+    // --- 1. LOGIQUE CAMÉRA (JS) ---
+    function onScanSuccess(decodedText, decodedResult) {
+        if (document.getElementById('result-card').classList.contains('processing')) return;
+        document.getElementById('result-card').classList.add('processing');
+
+        fetch('/api/process_scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ qr_code: decodedText })
+        })
+        .then(r => r.json())
+        .then(data => {
+            showResult(data);
+            setTimeout(() => document.getElementById('result-card').classList.remove('processing'), 2000);
+        })
+        .catch(err => {
+            console.error(err);
+            showError("Erreur lors du traitement du scan.");
+            document.getElementById('result-card').classList.remove('processing');
+        });
+    }
+
+    // Configuration caméra
+    let html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", 
+        { fps: 10, qrbox: {width: 250, height: 250} }, 
+        false
+    );
+    html5QrcodeScanner.render(onScanSuccess);
+
+
+    // --- 2. LOGIQUE UPLOAD FICHIER (PYTHON) ---
+    function uploadQR() {
+        let fileInput = document.getElementById('qr-input-file');
+        let file = fileInput.files[0];
+        
+        if (!file) {
+            showError("Veuillez sélectionner une image.");
+            return;
+        }
+
+        let formData = new FormData();
+        formData.append('file', file);
+        
+        // UI Loading
+        document.getElementById('btn-upload').disabled = true;
+        document.getElementById('upload-loading').classList.remove('d-none');
+        document.getElementById('error-alert').classList.add('d-none');
+
+        fetch('/api/analyze_image', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Reset UI
+            document.getElementById('btn-upload').disabled = false;
+            document.getElementById('upload-loading').classList.add('d-none');
+            
+            if (data.status === 'success') {
+                showResult(data);
+            } else {
+                showError(data.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('btn-upload').disabled = false;
+            document.getElementById('upload-loading').classList.add('d-none');
+            showError("Erreur de connexion au serveur.");
+        });
+    }
+</script>
+
+<!-- Scripts Bootstrap nécessaires pour les onglets -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
